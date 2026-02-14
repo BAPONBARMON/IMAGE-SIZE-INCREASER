@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMAGE SIZE INCREASER</title>
+
+<style>
+body{
+    margin:0;
+    background:#000;
+    font-family:monospace;
+    font-weight:bold;
+    color:#00ff00;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    width:95%;
+    max-width:600px;
+    border:3px solid #00ff00;
+    padding:25px;
+    border-radius:18px;
+    box-shadow:0 0 30px #00ff00;
+    text-align:center;
+}
+
+button,.file-label{
+    display:inline-block;
+    padding:12px 22px;
+    border:3px solid #00ff00;
+    background:black;
+    color:#00ff00;
+    border-radius:35px;
+    cursor:pointer;
+    margin-top:12px;
+    font-weight:bold;
+}
+
+button:hover,.file-label:hover{
+    background:#00ff00;
+    color:black;
+}
+
+input[type="file"]{
+    display:none;
+}
+
+input[type="number"],
+input[type="text"]{
+    width:85%;
+    padding:12px;
+    border-radius:30px;
+    border:3px solid #00ff00;
+    background:black;
+    color:#00ff00;
+    margin-top:12px;
+    font-weight:bold;
+}
+
+.status-box{
+    margin-top:18px;
+    padding:15px;
+    border:3px solid #00ff00;
+    border-radius:12px;
+    min-height:80px;
+    line-height:2em;
+    text-align:left;
+}
+
+#preview{
+    margin-top:18px;
+    max-width:100%;
+    border-radius:12px;
+    border:3px solid #00ff00;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>IMAGE SIZE INCREASER</h2>
+
+<label class="file-label">
+    SELECT IMAGE
+    <input type="file" id="imageInput" accept="image/*">
+</label>
+
+<div class="status-box" id="status">
+    Waiting for image...
+</div>
+
+<input type="number" id="targetSize" placeholder="Enter Target Size (KB)">
+
+<button id="increaseBtn" style="display:none;">
+    INCREASE SIZE
+</button>
+
+<img id="preview">
+
+<div id="renameSection" style="display:none;">
+    <input type="text" id="renameFile" placeholder="Rename File (Optional)">
+</div>
+
+<button id="downloadBtn" style="display:none;">
+    DOWNLOAD IMAGE
+</button>
+
+</div>
+
+<script>
+let originalFile;
+let newFile;
+
+const statusBox=document.getElementById("status");
+const preview=document.getElementById("preview");
+const increaseBtn=document.getElementById("increaseBtn");
+
+document.getElementById("imageInput").addEventListener("change",function(e){
+    originalFile=e.target.files[0];
+    preview.src=URL.createObjectURL(originalFile);
+
+    let img=new Image();
+    img.onload=function(){
+        statusBox.innerHTML=`
+        Original Size: ${(originalFile.size/1024).toFixed(2)} KB
+        `;
+    }
+    img.src=URL.createObjectURL(originalFile);
+
+    increaseBtn.style.display="inline-block";
+});
+
+increaseBtn.addEventListener("click",function(){
+
+    let targetKB=parseInt(document.getElementById("targetSize").value);
+
+    if(!targetKB || targetKB*1024<=originalFile.size){
+        alert("Target size must be greater than original size!");
+        return;
+    }
+
+    statusBox.innerHTML=`
+    Original Size: ${(originalFile.size/1024).toFixed(2)} KB
+    <br><br>
+    Processing...
+    `;
+
+    let targetBytes=targetKB*1024;
+
+    let reader=new FileReader();
+    reader.onload=function(e){
+
+        let arrayBuffer=e.target.result;
+        let originalBytes=new Uint8Array(arrayBuffer);
+
+        let paddedArray=new Uint8Array(targetBytes);
+        paddedArray.set(originalBytes);
+
+        let blob=new Blob([paddedArray],{type:originalFile.type});
+        newFile=new File([blob],"boosted_"+originalFile.name,{type:originalFile.type});
+
+        preview.src=URL.createObjectURL(newFile);
+
+        let percent=((newFile.size-originalFile.size)/originalFile.size*100).toFixed(2);
+
+        statusBox.innerHTML=`
+        Original Size: ${(originalFile.size/1024).toFixed(2)} KB
+
+        <br><br>
+
+        New Size: ${(newFile.size/1024).toFixed(2)} KB
+
+        <br>
+
+        Size Increased: ${percent}%
+        `;
+
+        document.getElementById("renameSection").style.display="block";
+        document.getElementById("downloadBtn").style.display="inline-block";
+    };
+
+    reader.readAsArrayBuffer(originalFile);
+});
+
+document.getElementById("downloadBtn").addEventListener("click",function(){
+    let rename=document.getElementById("renameFile").value.trim();
+    let finalName=rename?rename:newFile.name;
+
+    let link=document.createElement("a");
+    link.href=URL.createObjectURL(newFile);
+    link.download=finalName;
+    link.click();
+});
+</script>
+
+</body>
+</html>
